@@ -1,0 +1,151 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Genesys Open Messaging Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 750px;
+      margin: 30px auto;
+      padding: 20px;
+      background: #f1f5f9;
+    }
+    .card {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+    input, textarea {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 11px;
+      margin-top: 6px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    button {
+      margin-top: 20px;
+      padding: 12px 20px;
+      background: #123456;
+      color: white;
+      border: 0;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    pre {
+      background: #172033;
+      color: #b9f6ca;
+      padding: 14px;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+    .warning { color: #a33; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Genesys Cloud Open Messaging</h1>
+    <p>Send a test customer message into Genesys Cloud.</p>
+
+    <label for="integrationId">Open Messaging Integration ID</label>
+    <input id="integrationId" placeholder="Enter integration ID">
+
+    <label for="token">OAuth Access Token</label>
+    <input id="token" type="password"
+      autocomplete="off" placeholder="Paste temporary access token">
+
+    <label for="customerId">Customer ID</label>
+    <input id="customerId" value="web-customer-001">
+
+    <label for="message">Customer Message</label>
+    <textarea id="message">Hello, I need help with my account.</textarea>
+
+    <button id="sendButton" onclick="sendMessage()">
+      Send Message to Genesys
+    </button>
+
+    <h3>API Result</h3>
+    <pre id="result">Ready.</pre>
+
+    <p class="warning">
+      Testing only. Do not publish access tokens or client secrets.
+    </p>
+  </div>
+
+  <script>
+    async function sendMessage() {
+      const integrationId =
+        document.getElementById("integrationId").value.trim();
+      const token =
+        document.getElementById("token").value.trim();
+      const customerId =
+        document.getElementById("customerId").value.trim();
+      const message =
+        document.getElementById("message").value.trim();
+      const result = document.getElementById("result");
+      const button = document.getElementById("sendButton");
+
+      if (!integrationId || !token || !customerId || !message) {
+        result.textContent = "Please fill in all fields.";
+        return;
+      }
+
+      button.disabled = true;
+      result.textContent = "Sending message...";
+
+      const apiUrl =
+        "https://api.mypurecloud.jp/api/v2/conversations/messages/" +
+        encodeURIComponent(integrationId) +
+        "/inbound/open/message?prefetchConversationId=true";
+
+      const body = {
+        text: message,
+        channel: {
+          from: {
+            id: customerId,
+            idType: "Opaque"
+          },
+          time: new Date().toISOString(),
+          messageId: crypto.randomUUID()
+        }
+      };
+
+      try {
+        const response = await fetch(apiUrl, {
+          method: "POST",
+          headers: {
+            "Authorization": "Bearer " + token,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(body)
+        });
+
+        const responseText = await response.text();
+
+        result.textContent =
+          "HTTP Status: " + response.status +
+          "\n\nResponse:\n" + responseText;
+
+        if (response.ok) {
+          document.getElementById("token").value = "";
+        }
+      } catch (error) {
+        result.textContent =
+          "Request failed: " + error.message +
+          "\n\nThe browser may be blocking the request due to CORS. " +
+          "If so, use a backend proxy to call the Genesys API.";
+      } finally {
+        button.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>
