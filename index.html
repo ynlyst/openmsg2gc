@@ -4,14 +4,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Genesys Open Messaging Test</title>
+  <title>Genesys Cloud Open Messaging Test</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      max-width: 750px;
+      max-width: 720px;
       margin: 30px auto;
       padding: 20px;
       background: #f1f5f9;
+      color: #1e293b;
     }
     .card {
       background: white;
@@ -28,17 +29,21 @@
       box-sizing: border-box;
       padding: 11px;
       margin-top: 6px;
-      border: 1px solid #ccc;
+      border: 1px solid #cbd5e1;
       border-radius: 6px;
     }
     button {
       margin-top: 20px;
-      padding: 12px 20px;
+      padding: 12px 18px;
       background: #123456;
       color: white;
       border: 0;
       border-radius: 6px;
       cursor: pointer;
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: wait;
     }
     pre {
       background: #172033;
@@ -47,40 +52,39 @@
       white-space: pre-wrap;
       overflow-wrap: anywhere;
     }
-    .warning { color: #a33; }
   </style>
 </head>
 <body>
   <div class="card">
-    <h1>Genesys Cloud Open Messaging</h1>
-    <p>Send a test customer message into Genesys Cloud.</p>
+    <h1>Genesys Open Messaging</h1>
+    <p>Singapore region: apse1</p>
 
     <label for="integrationId">Open Messaging Integration ID</label>
-    <input id="integrationId" placeholder="Enter integration ID">
+    <input id="integrationId"
+           placeholder="Paste integration ID">
 
     <label for="token">OAuth Access Token</label>
     <input id="token" type="password"
-      autocomplete="off" placeholder="Paste temporary access token">
+           autocomplete="off"
+           placeholder="Paste access token">
 
     <label for="customerId">Customer ID</label>
     <input id="customerId" value="web-customer-001">
 
-    <label for="message">Customer Message</label>
+    <label for="message">Message</label>
     <textarea id="message">Hello, I need help with my account.</textarea>
 
     <button id="sendButton" onclick="sendMessage()">
-      Send Message to Genesys
+      Send to Genesys Cloud
     </button>
 
-    <h3>API Result</h3>
+    <h3>Result</h3>
     <pre id="result">Ready.</pre>
-
-    <p class="warning">
-      Testing only. Do not publish access tokens or client secrets.
-    </p>
   </div>
 
   <script>
+    const API_BASE = "https://api.apse1.pure.cloud";
+
     async function sendMessage() {
       const integrationId =
         document.getElementById("integrationId").value.trim();
@@ -99,14 +103,15 @@
       }
 
       button.disabled = true;
-      result.textContent = "Sending message...";
+      result.textContent = "Sending request...";
 
-      const apiUrl =
-        "https://api.mypurecloud.jp/api/v2/conversations/messages/" +
+      const url =
+        API_BASE +
+        "/api/v2/conversations/messages/" +
         encodeURIComponent(integrationId) +
         "/inbound/open/message?prefetchConversationId=true";
 
-      const body = {
+      const payload = {
         text: message,
         channel: {
           from: {
@@ -119,29 +124,30 @@
       };
 
       try {
-        const response = await fetch(apiUrl, {
+        const response = await fetch(url, {
           method: "POST",
           headers: {
             "Authorization": "Bearer " + token,
             "Content-Type": "application/json"
           },
-          body: JSON.stringify(body)
+          body: JSON.stringify(payload)
         });
 
-        const responseText = await response.text();
+        const text = await response.text();
 
         result.textContent =
           "HTTP Status: " + response.status +
-          "\n\nResponse:\n" + responseText;
+          "\n\nResponse:\n" + (text || "(empty response)");
 
         if (response.ok) {
-          document.getElementById("token").value = "";
+          result.textContent +=
+            "\n\nRequest accepted by Genesys Cloud.";
         }
       } catch (error) {
         result.textContent =
           "Request failed: " + error.message +
-          "\n\nThe browser may be blocking the request due to CORS. " +
-          "If so, use a backend proxy to call the Genesys API.";
+          "\n\nCheck the API endpoint, browser CORS restrictions, " +
+          "and network connectivity.";
       } finally {
         button.disabled = false;
       }
